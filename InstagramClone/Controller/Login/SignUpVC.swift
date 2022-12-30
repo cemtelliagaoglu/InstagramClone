@@ -145,7 +145,7 @@ class SignUpVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
         guard let email = emailTextField.text,
               let password = passwordTextField.text,
               let fullName = fullNameTextField.text,
-              let username = usernameTextField.text else { return }
+              let username = usernameTextField.text?.lowercased() else { return }
         
         
         Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
@@ -185,9 +185,11 @@ class SignUpVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
 
                     let values = [uid: dictionaryValues]
                     // save user info to database
-                    Database.database().reference().child("users").child(uid).updateChildValues(dictionaryValues) { error, ref in
+                    Database.database().reference().child("users").child(uid).updateChildValues(values) { error, ref in
                         
-                        guard let mainTabVC = UIApplication.shared.keyWindow?.rootViewController as? MainTabVC else { return }
+                        //guard let mainTabVC = UIApplication.shared.keyWindow?.rootViewController as? MainTabVC else { return }
+                        guard let mainTabVC = UIApplication.shared.connectedScenes.compactMap({($0 as? UIWindowScene)?.keyWindow }).first?.rootViewController as? MainTabVC else { return }
+                        
                         mainTabVC.configureViewControllers()
                         self.dismiss(animated: true, completion: nil)
                     }

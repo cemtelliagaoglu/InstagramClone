@@ -106,7 +106,7 @@ class LoginVC: UIViewController {
                 return
             }
             // handle success
-            guard let mainTabVC = UIApplication.shared.keyWindow?.rootViewController as? MainTabVC else { return }
+            guard let mainTabVC = UIApplication.shared.connectedScenes.compactMap({($0 as? UIWindowScene)?.keyWindow }).first?.rootViewController as? MainTabVC else { return }
             
             mainTabVC.configureViewControllers()
             self.dismiss(animated: true, completion: nil)
