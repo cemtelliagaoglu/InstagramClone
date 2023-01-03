@@ -6,9 +6,28 @@
 //
 
 import UIKit
+import FirebaseAuth
 
 class UserProfileHeader: UICollectionViewCell {
  
+    //MARK: - Properties
+    
+    var delegate: UserProfileHeaderDelegate?
+    
+    var user: User?{
+        didSet{
+            // configure edit profile button
+            configureEditProfileFollowButton()
+            
+            // set user stats
+            setUserStats(for: user)
+            
+            let fullName = user?.name
+            nameLabel.text = fullName
+            guard let profileImageURL = user?.profileImageURL else { return }
+            profileImageView.loadImage(with: profileImageURL)
+        }
+    }
     let profileImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -19,7 +38,6 @@ class UserProfileHeader: UICollectionViewCell {
     
     let nameLabel: UILabel = {
         let label = UILabel()
-        label.text = "CZN Burak"
         label.font = .boldSystemFont(ofSize: 12)
         return label
     }()
@@ -34,35 +52,47 @@ class UserProfileHeader: UICollectionViewCell {
         label.attributedText = attributedString
         return label
     }()
-    let followersLabel: UILabel = {
+    lazy var followersLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 0
         label.textAlignment = .center
-        
-        let attributedString = NSMutableAttributedString(string: "5\n", attributes: [.font: UIFont.boldSystemFont(ofSize: 14)])
+        let attributedString = NSMutableAttributedString(string: "\n", attributes: [.font: UIFont.boldSystemFont(ofSize: 14)])
         attributedString.append(NSAttributedString(string: "followers",attributes: [.font: UIFont.systemFont(ofSize: 14),.foregroundColor: UIColor.lightGray]))
         label.attributedText = attributedString
+        
+        // add gesture recognizer
+        let followTap = UITapGestureRecognizer(target: self, action: #selector(handleFollowersTapped))
+        followTap.numberOfTouchesRequired = 1
+        label.isUserInteractionEnabled = true
+        label.addGestureRecognizer(followTap)
+        
         return label
     }()
-    let followingLabel: UILabel = {
+    lazy var followingLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 0
         label.textAlignment = .center
-        
-        let attributedString = NSMutableAttributedString(string: "5\n", attributes: [.font: UIFont.boldSystemFont(ofSize: 14)])
+        let attributedString = NSMutableAttributedString(string: "\n", attributes: [.font: UIFont.boldSystemFont(ofSize: 14)])
         attributedString.append(NSAttributedString(string: "following",attributes: [.font: UIFont.systemFont(ofSize: 14),.foregroundColor: UIColor.lightGray]))
         label.attributedText = attributedString
+        
+        let followingTap = UITapGestureRecognizer(target: self, action: #selector(handleFollowingTapped))
+        followingTap.numberOfTouchesRequired = 1
+        label.isUserInteractionEnabled = true
+        label.addGestureRecognizer(followingTap)
+        
         return label
     }()
     
-    let editProfileButton: UIButton = {
+    lazy var editProfileFollowButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Edit Profile", for: .normal)
+        button.setTitle("Loading", for: .normal)
         button.layer.cornerRadius = 3
         button.layer.borderColor = UIColor.lightGray.cgColor
         button.layer.borderWidth = 0.5
         button.titleLabel?.font = .boldSystemFont(ofSize: 14)
         button.setTitleColor(.black, for: .normal)
+        button.addTarget(self, action: #selector(handleEditProfileFollow), for: .touchUpInside)
         return button
     }()
     
@@ -86,8 +116,10 @@ class UserProfileHeader: UICollectionViewCell {
         return button
     }()
     
-    override var reuseIdentifier: String?{ "UserProfileHeader" }
     
+//    override var reuseIdentifier: String?{ "UserProfileHeader" }
+    
+    //MARK: - Init
     override init(frame: CGRect) {
         super.init(frame: frame)
         
@@ -100,8 +132,8 @@ class UserProfileHeader: UICollectionViewCell {
         
         configureUserStats()
         
-        addSubview(editProfileButton)
-        editProfileButton.anchor(top: postsLabel.bottomAnchor, left: postsLabel.leftAnchor, bottom: nil, right: self.rightAnchor, paddingTop: 4, paddingLeft: 8, paddingBottom: 0, paddingRight: 12, width: 0, height: 30)
+        addSubview(editProfileFollowButton)
+        editProfileFollowButton.anchor(top: postsLabel.bottomAnchor, left: postsLabel.leftAnchor, bottom: nil, right: self.rightAnchor, paddingTop: 4, paddingLeft: 8, paddingBottom: 0, paddingRight: 12, width: 0, height: 30)
         
         configureBottomToolBar()
     }
@@ -110,7 +142,45 @@ class UserProfileHeader: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    //MARK: - Handlers
+    
+    @objc func handleEditProfileFollow(){
+        delegate?.handleEditFollowTapped(for: self)
+    }
+    
+    @objc func handleFollowersTapped(){
+        delegate?.handleFollowersTapped(for: self)
+    }
+    
+    @objc func handleFollowingTapped(){
+        delegate?.handleFollowingTapped(for: self)
+    }
+    
     //MARK: - View Configurations
+    func setUserStats(for user: User?){
+        delegate?.setUserStats(for: self)
+    }
+    
+    func configureEditProfileFollowButton(){
+        guard let currentUid = Auth.auth().currentUser?.uid,
+              let user = self.user else { return }
+        if currentUid == user.uid{
+            // configure button as edit profile
+            editProfileFollowButton.setTitle("Edit Profile", for: .normal)
+        }else{
+            user.checkIfUserIsFollowed { followed in
+                if followed{
+                    self.editProfileFollowButton.setTitle("Following", for: .normal)
+                }else{
+                    self.editProfileFollowButton.setTitle("Follow", for: .normal)
+                }
+            }
+            // configure button as follow button
+            editProfileFollowButton.setTitleColor(.white, for: .normal)
+            editProfileFollowButton.backgroundColor = UIColor(red: 17/255, green: 154/255, blue: 237/255, alpha: 1)
+        }
+        
+    }
     func configureUserStats(){
         let stackView = UIStackView(arrangedSubviews: [postsLabel, followersLabel, followingLabel])
         stackView.distribution = .fillEqually
