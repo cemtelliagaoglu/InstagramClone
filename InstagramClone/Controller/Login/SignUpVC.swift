@@ -185,7 +185,7 @@ class SignUpVC: UIViewController, UIImagePickerControllerDelegate, UINavigationC
 
                     let values = [uid: dictionaryValues]
                     // save user info to database
-                    Database.database().reference().child("users").child(uid).updateChildValues(values) { error, ref in
+                    Database.database().reference().child("users").updateChildValues(values) { error, ref in
                         
                         //guard let mainTabVC = UIApplication.shared.keyWindow?.rootViewController as? MainTabVC else { return }
                         guard let mainTabVC = UIApplication.shared.connectedScenes.compactMap({($0 as? UIWindowScene)?.keyWindow }).first?.rootViewController as? MainTabVC else { return }
