@@ -75,13 +75,12 @@ class SearchVC: UITableViewController {
             
             let uid = snapshot.key
             
-            guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
-            // construct user
-            let user = User(uid: uid, dictionary: dictionary)
-            // append user to data source
-            self.users.append(user)
-            // reload tableView
-            self.tableView.reloadData()
+            Database.fetchUser(with: uid) { user in
+                
+                self.users.append(user)
+                
+                self.tableView.reloadData()
+            }
         }
     }
 }
