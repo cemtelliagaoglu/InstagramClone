@@ -41,6 +41,8 @@ class SearchUserCell: UITableViewCell {
         
         self.textLabel?.text = "Username"
         self.detailTextLabel?.text = "Full Name"
+        
+        self.selectionStyle = .none // Removes the selection animation
     }
     
     override func layoutSubviews() {

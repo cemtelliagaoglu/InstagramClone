@@ -88,6 +88,8 @@ class FollowCell: UITableViewCell {
         
         self.textLabel?.text = "Username"
         self.detailTextLabel?.text = "Full Name"
+        
+        self.selectionStyle = .none // Removes the selection animation
     }
     
     required init?(coder: NSCoder) {
