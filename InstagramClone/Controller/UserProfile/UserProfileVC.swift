@@ -17,11 +17,12 @@ class UserProfileVC: UICollectionViewController, UICollectionViewDelegateFlowLay
     //MARK: - Properties
     
     var user: User?
+    var posts = [Post]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Register cell classes
-        self.collectionView!.register(UICollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
+        self.collectionView!.register(UserPostCell.self, forCellWithReuseIdentifier: reuseIdentifier)
         self.collectionView!.register(UserProfileHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerIdentifier)
         
         //background color
@@ -31,15 +32,28 @@ class UserProfileVC: UICollectionViewController, UICollectionViewDelegateFlowLay
         if self.user == nil{
             fetchCurrentUserData()
         }
-
+        
+        // fetch posts
+        fetchPosts()
+    }
+    //MARK: - UICollectionViewFlowLayout
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let width = (view.frame.width - 2) / 3
+        return CGSize(width: width, height: width)
     }
     
-//    private func setupLayout(){
-//        collectionView.translatesAutoresizingMaskIntoConstraints = false
-//        collectionView.anchor(top: self.view.topAnchor, left: self.view.leftAnchor, bottom: nil , right: nil, paddingTop: 0, paddingLeft: 0, paddingBottom: 0, paddingRight: 0, width: view.frame.width, height: 200)
-//    }
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+        return CGSize(width: view.frame.width, height: 200)
+    }
     
-   
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+        return 1
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+        return 1
+    }
     // MARK: - UICollectionView
     
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -48,7 +62,7 @@ class UserProfileVC: UICollectionViewController, UICollectionViewDelegateFlowLay
     
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of items
-        return 0
+        return posts.count
     }
     
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
@@ -62,29 +76,51 @@ class UserProfileVC: UICollectionViewController, UICollectionViewDelegateFlowLay
         // return header
         return header
     }
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
-        return CGSize(width: view.frame.width, height: 200)
-    }
-    
+
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath)
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath) as! UserPostCell
         // Configure the cell
-        
+        cell.post = posts[indexPath.row]
         return cell
     }
     
     //MARK: - API
-        func fetchCurrentUserData(){
-            
-            guard let currentUid = Auth.auth().currentUser?.uid else{ fatalError() }
-            Database.database().reference().child("users").child(currentUid).observeSingleEvent(of: .value) { snapshot in
-                guard let dictionary = snapshot.value as? Dictionary< String, AnyObject> else{ return }
-                let user = User(uid: currentUid, dictionary: dictionary)
-                self.user = user
-                self.navigationItem.title = user.username
+    func fetchPosts(){
+        
+        var uid: String!
+        if let user = self.user{
+            uid = user.uid
+        }else{
+            uid = Auth.auth().currentUser?.uid
+        }
+        
+        USER_POSTS_REF.child(uid).observe(.childAdded) { snapshot in
+            let postId = snapshot.key
+            POSTS_REF.child(postId).observeSingleEvent(of: .value) { snapshot in
+                
+                guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
+                
+                let post = Post(postId: postId, dictionary: dictionary)
+                self.posts.append(post)
+                self.posts.sort(by: {$0.creationDate > $1.creationDate})
+                
                 self.collectionView.reloadData()
             }
+            
         }
+        
+    }
+    func fetchCurrentUserData(){
+        
+        guard let currentUid = Auth.auth().currentUser?.uid else{ fatalError() }
+        Database.database().reference().child("users").child(currentUid).observeSingleEvent(of: .value) { snapshot in
+            guard let dictionary = snapshot.value as? Dictionary< String, AnyObject> else{ return }
+            let user = User(uid: currentUid, dictionary: dictionary)
+            self.user = user
+            self.navigationItem.title = user.username
+            self.collectionView.reloadData()
+        }
+    }
 }
 
 //MARK: - UserProfileHeaderDelegate Methods
