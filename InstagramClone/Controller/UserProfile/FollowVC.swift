@@ -58,7 +58,14 @@ class FollowVC: UITableViewController{
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+        
+        let user = users[indexPath.row]
+        
+        let userProfileVC = UserProfileVC(collectionViewLayout: UICollectionViewFlowLayout())
+        
+        userProfileVC.user = user
+        navigationController?.pushViewController(userProfileVC, animated: true)
+        
     }
     //MARK: - API
     func fetchUsers(){
@@ -79,15 +86,12 @@ class FollowVC: UITableViewController{
                 allObjects.forEach { snapshot in
                     let userId = snapshot.key
                     
-                    USER_REF.child(userId).observeSingleEvent(of: .value) { snapshot in
-                        guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
+                    Database.fetchUser(with: userId) { user in
                         
-                        let user = User(uid: userId, dictionary: dictionary)
                         self.users.append(user)
                         
                         self.tableView.reloadData()
-                }
-            
+                    }
             }
             
         }
