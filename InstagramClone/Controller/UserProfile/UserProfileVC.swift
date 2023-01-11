@@ -96,17 +96,14 @@ class UserProfileVC: UICollectionViewController, UICollectionViewDelegateFlowLay
         
         USER_POSTS_REF.child(uid).observe(.childAdded) { snapshot in
             let postId = snapshot.key
-            POSTS_REF.child(postId).observeSingleEvent(of: .value) { snapshot in
+            
+            Database.fetchPost(with: postId) { post in
                 
-                guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
-                
-                let post = Post(postId: postId, dictionary: dictionary)
                 self.posts.append(post)
                 self.posts.sort(by: {$0.creationDate > $1.creationDate})
                 
                 self.collectionView.reloadData()
             }
-            
         }
         
     }
