@@ -28,8 +28,8 @@ class UserProfileHeader: UICollectionViewCell {
             profileImageView.loadImage(with: profileImageURL)
         }
     }
-    let profileImageView: UIImageView = {
-        let iv = UIImageView()
+    let profileImageView: CustomImageView = {
+        let iv = CustomImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.backgroundColor = .lightGray
