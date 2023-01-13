@@ -101,6 +101,9 @@ class UploadPostVC: UIViewController, UITextViewDelegate {
                             let userPostsRef = USER_POSTS_REF.child(currentUid)
                             userPostsRef.updateChildValues([postKey: 1])
                             
+                            // update user-feed structure
+                            self.updateUserFeed(with: postKey)
+                            
                             // return to home feed
                             self.dismiss(animated: true) {
                                 self.tabBarController?.selectedIndex = 0
@@ -134,4 +137,22 @@ class UploadPostVC: UIViewController, UITextViewDelegate {
         
     }
    
+    func updateUserFeed(with postId: String){
+        // current user id
+        guard let currentUid = Auth.auth().currentUser?.uid else{ return }
+        
+        // database values
+        let values = [postId: 1]
+        
+        // update follower feeds
+        USER_FOLLOWER_REF.child(currentUid).observe(.childAdded) { snapshot in
+            let followerUid = snapshot.key
+            USER_FEED_REF.child(followerUid).updateChildValues(values)
+        }
+        
+        // update current user feed ref
+        USER_FEED_REF.child(currentUid).updateChildValues(values)
+        
+    }
+    
 }

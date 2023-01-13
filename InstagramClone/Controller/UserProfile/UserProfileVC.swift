@@ -84,6 +84,14 @@ class UserProfileVC: UICollectionViewController, UICollectionViewDelegateFlowLay
         return cell
     }
     
+    override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let feedVC = FeedVC(collectionViewLayout: UICollectionViewFlowLayout())
+        
+        feedVC.viewSinglePost = true
+        feedVC.post = self.posts[indexPath.row]
+        navigationController?.pushViewController(feedVC, animated: true)
+    }
+    
     //MARK: - API
     func fetchPosts(){
         

@@ -16,17 +16,28 @@ class FeedVC: UICollectionViewController,UICollectionViewDelegateFlowLayout {
     //MARK: - Properties
     
     var posts = [Post]()
+    var viewSinglePost = false
+    var post: Post?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Register cell classes
-        self.collectionView!.register(FeedCell.self, forCellWithReuseIdentifier: reuseIdentifier)
         
         collectionView.backgroundColor = .white
         
+        // Register cell classes
+        self.collectionView!.register(FeedCell.self, forCellWithReuseIdentifier: reuseIdentifier)
+        
+        //configure refresh control
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+        collectionView.refreshControl = refreshControl
+        
         configureNavController()
         
-        fetchPosts()
+        if !viewSinglePost{
+            fetchPosts()
+        }
+        
     }
 
     //MARK: - UICollectionViewFlowLayout
@@ -41,26 +52,41 @@ class FeedVC: UICollectionViewController,UICollectionViewDelegateFlowLayout {
     // MARK: UICollectionViewDataSource
 
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
         return 1
     }
 
 
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of items
-        return posts.count
+
+        if viewSinglePost{
+            return 1
+        }else{
+            return posts.count
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath) as! FeedCell
-        cell.post = posts[indexPath.row]
+        
         cell.delegate = self
-        // Configure the cell
-    
+        
+        if viewSinglePost{
+            if let post = self.post{
+                cell.post = post
+            }
+        }else{
+            cell.post = posts[indexPath.row]
+        }
+        
         return cell
     }
 
     //MARK: - Handlers
+    @objc func handleRefresh(){
+        posts.removeAll(keepingCapacity: false)
+        fetchPosts()
+        collectionView.reloadData()
+    }
     func configureNavController(){
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(handleLogout))
         self.navigationItem.title = "Feed"
@@ -92,21 +118,21 @@ class FeedVC: UICollectionViewController,UICollectionViewDelegateFlowLayout {
     //MARK: - API
     
     func fetchPosts(){
-        POSTS_REF.observe(.childAdded) { snapshot in
+        
+        guard let currentUid = Auth.auth().currentUser?.uid else{ return }
+        
+        USER_FEED_REF.child(currentUid).observe(.childAdded) { snapshot in
             let postId = snapshot.key
             
-            guard let dictionary = snapshot.value as? Dictionary<String,AnyObject> else{ return }
-            guard let ownerUid = dictionary["ownerUid"] as? String else{ return }
-            
-            Database.fetchUser(with: ownerUid) { user in
-                
-                let post = Post(postId: postId,user: user, dictionary: dictionary)
+            Database.fetchUser(with: currentUid) { user in
                 
                 Database.fetchPost(with: postId) { post in
                     
                     self.posts.append(post)
                     
                     self.posts.sort(by: {$0.creationDate > $1.creationDate})
+                    // end refreshing
+                    self.collectionView.refreshControl?.endRefreshing()
                     
                     self.collectionView.reloadData()
                 }
