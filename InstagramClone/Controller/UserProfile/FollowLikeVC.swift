@@ -8,7 +8,7 @@
 import UIKit
 import Firebase
 
-class FollowVC: UITableViewController{
+class FollowLikeVC: UITableViewController{
     
     //MARK: - Properties
     private let reuseIdentifier = "FollowCell"
@@ -99,7 +99,7 @@ class FollowVC: UITableViewController{
     }
 }
     //MARK: - FollowCellDelegate Protocol
-extension FollowVC: FollowCellDelegate{
+extension FollowLikeVC: FollowCellDelegate{
     
     func handleFollowTapped(for cell: FollowCell) {
         guard let user = cell.user else{ return }

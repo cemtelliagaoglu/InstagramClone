@@ -8,7 +8,7 @@
 import UIKit
 import FirebaseAuth
 
-class FollowCell: UITableViewCell {
+class FollowLikeCell: UITableViewCell {
     
     //MARK: - Properties
     
