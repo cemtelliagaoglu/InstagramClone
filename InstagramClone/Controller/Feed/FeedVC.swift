@@ -87,6 +87,24 @@ class FeedVC: UICollectionViewController,UICollectionViewDelegateFlowLayout {
         fetchPosts()
         collectionView.reloadData()
     }
+    func updateLikeStructures(with postId: String, addLike: Bool){
+        guard let currentUid = Auth.auth().currentUser?.uid else{ return }
+        
+        if addLike{
+            // updates user likes ref
+            USER_LIKES_REF.child(currentUid).updateChildValues([postId: 1])
+            
+            // updates post likes ref
+            POST_LIKES_REF.child(postId).updateChildValues([currentUid: 1])
+        }else{
+            // remove like from user-like structure
+            USER_LIKES_REF.child(currentUid).removeValue()
+            // remove like from post-like structure
+            POST_LIKES_REF.child(postId).child(currentUid).removeValue()
+        }
+    }
+    
+    
     func configureNavController(){
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(handleLogout))
         self.navigationItem.title = "Feed"
@@ -158,7 +176,42 @@ extension FeedVC: FeedCellDelegate{
     }
     
     func handleLikeTapped(for cell: FeedCell) {
-        print("handle like tapped")
+        guard let post = cell.post else{ return }
+        
+        if post.didLike{
+            post.adjustLikes(addLike: false,completion: { likes in
+                cell.likesLabel.text = "\(likes) likes"
+                cell.likeButton.setImage(UIImage(named: "like_unselected"), for: .normal)
+            })
+        }else{
+                post.adjustLikes(addLike: true) { likes in
+                    cell.likesLabel.text = "\(likes) likes"
+                    cell.likeButton.setImage(UIImage(named: "like_selected"), for: .normal)
+                }
+        }
+        
+    }
+    func handleShowLikes(for cell: FeedCell) {
+        guard let post = cell.post else{ return }
+        guard let postId = post.postId else{ return }
+        
+        let followLikeVC = FollowLikeVC()
+        followLikeVC.viewingMode = FollowLikeVC.ViewingMode(index: 2)
+        followLikeVC.postId = postId
+        navigationController?.pushViewController(followLikeVC, animated: true)
+    }
+    func handleConfigureLikeButton(for cell: FeedCell) {
+        
+        guard let currentUid = Auth.auth().currentUser?.uid else{ return }
+        guard let post = cell.post else{ return }
+        guard let postId = post.postId else{ return }
+        
+        USER_LIKES_REF.child(currentUid).observeSingleEvent(of: .value) { snapshot in
+            if snapshot.hasChild(postId){
+                post.didLike = true
+                cell.likeButton.setImage(UIImage(named: "like_selected"), for: .normal)
+            }
+        }
     }
     
     func handleCommentTapped(for cell: FeedCell) {
